@@ -1,57 +1,52 @@
 # leviagotchi
 
-A Pwnagotchi-style WiFi monitor running on an ESP32 CYD (Cheap Yellow Display). Passively sniffs 802.11 frames, detects WPA handshakes, tracks nearby access points and clients, and reacts with animated facial expressions. Also runs a captive portal so anyone who joins the "leviagotchi friendly" network gets a surprise.
+so i got one of those cheap ESP32 displays (the CYD) and wanted to do something actually cool with it. ended up building something inspired by pwnagotchi — it sits on my desk, watches all the wifi traffic around it, and makes faces depending on whats happening.
+
+it also broadcasts its own open wifi network. if you connect to it you get a little surprise page instead of internet lol
 
 ---
 
-## What it does
+## what it does
 
-- **WiFi monitor** — runs in promiscuous mode, no connection required. Listens to raw 802.11 frames on the 2.4GHz band
-- **AP detection** — logs every unique BSSID/SSID it sees
-- **Client tracking** — logs unique client MAC addresses sending data frames
-- **Handshake detection** — detects EAPOL frames (WPA2 4-way handshake). Goes happy face when one is caught
-- **Captive portal** — broadcasts an open AP called "leviagotchi friendly". Anyone who connects gets redirected to a page that says "I made a new friend". Friends counter increments on screen
-- **Animated face** — reacts to real events. Bored when quiet, excited when busy, happy on handshakes/friends, sleeps after long idle periods
-- **Live stats** — APs seen, clients, handshakes, friends, epochs, activity count
-
----
-
-## Hardware
-
-- ESP32 CYD (Cheap Yellow Display) — ST7789 320x240 screen, XPT2046 touch
-- USB-C cable for flashing
-
-Tested on the `ESP32-2432S028`. Should work on any CYD with the same pinout.
+- passively listens to all 802.11 wifi frames around it without connecting to anything
+- tracks every router (AP) and device (client) it sees
+- detects WPA2 handshakes — the 4-way exchange that happens when a device connects to a network
+- makes different faces depending on whats going on (bored when quiet, happy when it catches something, falls asleep if nothing happens for a while)
+- broadcasts a fake open network called "leviagotchi friendly" — connect to it and you get redirected to a page that says i made a new friend
+- shows live stats on the right side of the screen (APs seen, clients, handshakes, friends, etc)
 
 ---
 
-## Setup
+## hardware
 
-**1. Clone**
+just an ESP32 CYD (Cheap Yellow Display). the specific one i used is the ESP32-2432S028 which has a 320x240 ST7789 screen built in. you can get them for like $10 on aliexpress.
+
+nothing else needed, no extra wiring.
+
+---
+
+## flashing it
+
+you need [PlatformIO](https://platformio.org/install/ide?install=vscode) installed in VS Code.
+
 ```bash
 git clone https://github.com/Endoykoo/leviagotchi.git
 cd leviagotchi
 ```
 
-**2. Install [PlatformIO](https://platformio.org/install/ide?install=vscode)**
-
-**3. Edit config at the top of `src/main.cpp`**
+open `src/main.cpp` and change these two lines at the top:
 
 ```cpp
-#define PORTAL_SSID  "leviagotchi friendly"   // fake AP name
-#define FIXED_CHAN    6                         // set to your router's channel
+#define PORTAL_SSID  "leviagotchi friendly"   // whatever you want the fake network called
+#define FIXED_CHAN    6                         // set this to your router's wifi channel
 ```
 
-To find your channel: Android — tap your network in WiFi settings. Windows — run `netsh wlan show all` in cmd.
+to find your channel on windows open cmd and run `netsh wlan show all` and find your network. most routers use channel 1, 6 or 11.
 
-**4. Flash**
-```bash
-pio run --target upload
-```
+then just hit upload in PlatformIO. open the serial monitor at 115200 to see whats happening:
 
-**5. Open Serial Monitor at 115200** to see live output:
 ```
-[AP] MyRouter  CH:6  RSSI:-52
+[AP] SomeRouter  CH:6  RSSI:-58
 [CLIENT] AA:BB:CC:DD:EE:FF
 [EAPOL] Handshake #1 from AA:BB:CC:DD:EE:FF
 [PORTAL] New friend #1
@@ -59,51 +54,47 @@ pio run --target upload
 
 ---
 
-## Testing handshake capture
+## testing if it works
 
-Forget your WiFi on your phone and reconnect. Make sure `FIXED_CHAN` matches your router's channel — the ESP32 monitors one channel at a time when the portal AP is running.
+the easiest way to trigger a handshake is to forget your wifi on your phone and reconnect. make sure FIXED_CHAN matches your actual router channel or it wont see anything.
 
 ---
 
-## Expressions
+## the faces
 
-| Face | Trigger |
+| face | when |
 |---|---|
-| Awake `( ●_● )` | Default |
-| Happy | Handshake captured or new portal friend |
-| Excited | High frame activity (>200 frames/epoch) |
-| Grateful | 10+ APs and active |
-| Look L/R | Moderate activity |
-| Bored | 3+ idle epochs (90s of nothing) |
-| Sleep | 8+ idle epochs (4min of nothing) |
-
-An epoch is 30 seconds. Fewer than 5 frames = idle epoch.
+| `( ●_● )` awake | just sitting there scanning |
+| happy | caught a handshake or someone joined the portal |
+| excited | lots of wifi traffic flying around |
+| look left/right | some activity, scanning |
+| bored | nothing happened for 90 seconds |
+| sleeping | nothing happened for 4 minutes |
 
 ---
 
-## How the captive portal works
+## the captive portal
 
-The ESP32 broadcasts an open network. When a device connects, the OS checks for internet by hitting a known URL. The ESP32 intercepts all DNS queries, points everything at itself, and serves the portal page. The browser popup appears automatically on iOS, Android and Windows.
-
----
-
-## Project structure
-
-```
-leviagotchi/
-├── src/
-│   └── main.cpp
-├── platformio.ini
-└── README.md
-```
+when someone connects to the fake network, their phone/laptop automatically opens a browser popup (same thing that happens at hotels or cafes). thats because the OS checks for internet by hitting a known URL, the ESP32 intercepts the DNS request, points it at itself, and serves the page. works on iOS, Android and Windows automatically.
 
 ---
 
-## Disclaimer
+## disclaimer
 
-For educational and research purposes only. Only use on networks you own or have permission to test. Inspired by [Pwnagotchi](https://pwnagotchi.ai) by evilsocket.
+built this for fun and to learn about 802.11. only use it on your own network or where you have permission. the captive portal is the exact same tech airports and coffee shops use. i'm not responsible for how you use this.
 
-## Built with
+inspired by [pwnagotchi](https://pwnagotchi.ai) — go check that out if you want the real thing running on a raspberry pi.
 
-- [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) by Bodmer
-- ESP-IDF WiFi stack via Arduino framework
+---
+
+## license
+
+MIT — do whatever you want with it, just give credit.
+
+---
+
+## built with
+
+- [TFT_eSPI](https://github.com/Bodmer/TFT_eSPI) for the display
+- ESP-IDF wifi stack through the Arduino framework
+- PlatformIO
