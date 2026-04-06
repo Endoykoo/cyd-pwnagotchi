@@ -29,7 +29,7 @@ Tested on the `ESP32-2432S028`. Should work on any CYD with the same pinout.
 
 **1. Clone**
 ```bash
-git clone https://github.com/yourusername/leviagotchi.git
+git clone https://github.com/Endoykoo/leviagotchi.git
 cd leviagotchi
 ```
 
